@@ -179,14 +179,16 @@ CLIENT_CONVERSATION = Message(
         ('self_read_state', Message(
             ('participant_id', USER_ID),
             ('latest_read_timestamp', Field()),
+            is_optional=True,
         )),
         ('status', EnumField(ClientConversationStatus)),
         ('notification_level', EnumField(ClientNotificationLevel)),
         ('view', RepeatedField(
-            EnumField(ClientConversationView)
+            EnumField(ClientConversationView),
+            is_optional=True,
         )),
-        ('inviter_id', USER_ID),
-        ('invite_timestamp', Field()),
+        ('inviter_id', OPTIONAL_USER_ID),
+        ('invite_timestamp', Field(is_optional=True)),
         ('sort_timestamp', Field(is_optional=True)),
         ('active_timestamp', Field(is_optional=True)),
         (None, Field(is_optional=True)),
