@@ -1,6 +1,7 @@
 """User objects."""
 
 import logging
+import asyncio
 from collections import namedtuple
 
 logger = logging.getLogger(__name__)
@@ -103,8 +104,35 @@ class UserList(object):
         user_ = User.from_conv_part_data(conv_part, self._self_user.id_)
         if user_.id_ not in self._user_dict:
             logging.warning('Adding fallback User: {}'.format(user_))
+
+            try:
+                """getentitybyid can do multiple queries with a list, do it one-by-one for testing"""
+                asyncio.async(
+                    self._client.getentitybyid([user_.id_.chat_id])
+                ).add_done_callback(self._on_getentitybyid)
+            except Exception as e:
+                logging.info("EXCEPTION: {}".format(e))
+
             self._user_dict[user_.id_] = user_
         return user_
+
+    def _on_getentitybyid(self, future):
+        response = future.result()
+
+        entity_result = response["entity_result"]
+        first_entity = entity_result[0]["entity"][0]
+
+        gaia_id = first_entity["id"]["gaia_id"]
+        chat_id = first_entity["id"]["chat_id"]
+        display_name = first_entity["properties"]["display_name"]
+        first_name = first_entity["properties"]["first_name"]
+
+        user_id = UserID(chat_id=chat_id,
+                         gaia_id=gaia_id)
+
+        if user_id in self._user_dict:
+            self._user_dict[user_id] =  User(user_id, display_name, first_name, None, [], False)
+            logging.info("_on_getentitybyid(): updated {}".format(user_id))
 
     def _on_state_update(self, state_update):
         """Receive a ClientStateUpdate"""
